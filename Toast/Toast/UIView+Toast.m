@@ -18,7 +18,7 @@
 static const CGFloat CSToastMaxWidth            = 0.8;      // 80% of parent view width
 static const CGFloat CSToastMaxHeight           = 0.8;      // 80% of parent view height
 static const CGFloat CSToastHorizontalPadding   = 10.0;
-static const CGFloat CSToastVerticalPadding     = 10.0;
+static const CGFloat CSToastVerticalPadding     = 0.0;
 static const CGFloat CSToastCornerRadius        = 10.0;
 static const CGFloat CSToastOpacity             = 0.8;
 static const CGFloat CSToastFontSize            = 16.0;
@@ -46,7 +46,7 @@ static const CGFloat CSToastActivityHeight      = 100.0;
 static const NSString * CSToastActivityDefaultPosition = @"center";
 
 // interaction
-static const BOOL CSToastHidesOnTap             = YES;     // excludes activity views
+static const BOOL CSToastHidesOnTap             = NO;     // excludes activity views
 
 // associative reference keys
 static const NSString * CSToastTimerKey         = @"CSToastTimerKey";
