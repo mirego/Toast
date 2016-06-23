@@ -28,8 +28,12 @@
 #import <objc/runtime.h>
 
 NSString * CSToastPositionTop       = @"CSToastPositionTop";
+NSString * CSToastPositionTopRight       = @"CSToastPositionTopRight";
+NSString * CSToastPositionTopLeft       = @"CSToastPositionTopLeft";
 NSString * CSToastPositionCenter    = @"CSToastPositionCenter";
 NSString * CSToastPositionBottom    = @"CSToastPositionBottom";
+NSString * CSToastPositionBottomRight    = @"CSToastPositionBottomRight";
+NSString * CSToastPositionBottomLeft    = @"CSToastPositionBottomLeft";
 
 // Keys for values associated with toast views
 static const NSString * CSToastTimerKey             = @"CSToastTimerKey";
@@ -115,6 +119,10 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
 - (void)cs_showToast:(UIView *)toast duration:(NSTimeInterval)duration position:(id)position {
     toast.center = [self cs_centerPointForPosition:position withToast:toast];
     toast.alpha = 0.0;
+    if (toast.layer.shadowOpacity > 0.0) {
+        toast.layer.shadowPath = [UIBezierPath bezierPathWithRect:toast.bounds].CGPath;
+    }
+    
     
     if ([CSToastManager isTapToDismissEnabled]) {
         UITapGestureRecognizer *recognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(cs_handleToastTapped:)];
@@ -391,8 +399,16 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
     if([point isKindOfClass:[NSString class]]) {
         if([point caseInsensitiveCompare:CSToastPositionTop] == NSOrderedSame) {
             return CGPointMake(self.bounds.size.width/2, (toast.frame.size.height / 2) + style.verticalPadding);
+        } else if([point caseInsensitiveCompare:CSToastPositionTopRight] == NSOrderedSame) {
+            return CGPointMake(self.bounds.size.width - (toast.frame.size.width / 2) - style.horizontalPadding, (toast.frame.size.height / 2) + style.verticalPadding);
+        } else if([point caseInsensitiveCompare:CSToastPositionTopLeft] == NSOrderedSame) {
+            return CGPointMake((toast.frame.size.width / 2) + style.horizontalPadding, (toast.frame.size.height / 2) + style.verticalPadding);
         } else if([point caseInsensitiveCompare:CSToastPositionCenter] == NSOrderedSame) {
             return CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2);
+        } else if([point caseInsensitiveCompare:CSToastPositionBottomRight] == NSOrderedSame) {
+            return CGPointMake(self.bounds.size.width - (toast.frame.size.width / 2) - style.horizontalPadding, (self.bounds.size.height - (toast.frame.size.height / 2)) - style.verticalPadding);
+        } else if([point caseInsensitiveCompare:CSToastPositionBottomLeft] == NSOrderedSame) {
+            return CGPointMake((toast.frame.size.width / 2) + style.horizontalPadding, (self.bounds.size.height - (toast.frame.size.height / 2)) - style.verticalPadding);
         }
     } else if ([point isKindOfClass:[NSValue class]]) {
         return [point CGPointValue];
