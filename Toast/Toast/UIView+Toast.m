@@ -396,26 +396,53 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
 - (CGPoint)cs_centerPointForPosition:(id)point withToast:(UIView *)toast {
     CSToastStyle *style = [CSToastManager sharedStyle];
     
-    if([point isKindOfClass:[NSString class]]) {
-        if([point caseInsensitiveCompare:CSToastPositionTop] == NSOrderedSame) {
-            return CGPointMake(self.bounds.size.width/2, (toast.frame.size.height / 2) + style.verticalPadding);
-        } else if([point caseInsensitiveCompare:CSToastPositionTopRight] == NSOrderedSame) {
-            return CGPointMake(self.bounds.size.width - (toast.frame.size.width / 2) - style.horizontalPadding, (toast.frame.size.height / 2) + style.verticalPadding);
-        } else if([point caseInsensitiveCompare:CSToastPositionTopLeft] == NSOrderedSame) {
-            return CGPointMake((toast.frame.size.width / 2) + style.horizontalPadding, (toast.frame.size.height / 2) + style.verticalPadding);
-        } else if([point caseInsensitiveCompare:CSToastPositionCenter] == NSOrderedSame) {
-            return CGPointMake(self.bounds.size.width / 2, self.bounds.size.height / 2);
-        } else if([point caseInsensitiveCompare:CSToastPositionBottomRight] == NSOrderedSame) {
-            return CGPointMake(self.bounds.size.width - (toast.frame.size.width / 2) - style.horizontalPadding, (self.bounds.size.height - (toast.frame.size.height / 2)) - style.verticalPadding);
-        } else if([point caseInsensitiveCompare:CSToastPositionBottomLeft] == NSOrderedSame) {
-            return CGPointMake((toast.frame.size.width / 2) + style.horizontalPadding, (self.bounds.size.height - (toast.frame.size.height / 2)) - style.verticalPadding);
-        }
-    } else if ([point isKindOfClass:[NSValue class]]) {
+    if ([point isKindOfClass:[NSValue class]]) {
         return [point CGPointValue];
     }
     
+    UIEdgeInsets edgeInsets = UIEdgeInsetsZero;
+    
+    if (@available(iOS 11.0, tvOS 11.0, *)) {
+        edgeInsets = self.superview.safeAreaInsets;
+    }
+    
+    if ([point isKindOfClass:[NSString class]]) {
+        if ([point caseInsensitiveCompare:CSToastPositionTop] == NSOrderedSame) {
+            CGFloat x = self.bounds.size.width / 2;
+            CGFloat y = (toast.frame.size.height / 2) + style.verticalPadding + edgeInsets.top;
+            return CGPointMake(x, y);
+            
+        } else if ([point caseInsensitiveCompare:CSToastPositionTopRight] == NSOrderedSame) {
+            CGFloat x = self.bounds.size.width - (toast.frame.size.width / 2) - style.horizontalPadding - edgeInsets.right;
+            CGFloat y = (toast.frame.size.height / 2) + style.verticalPadding + edgeInsets.top;
+            return CGPointMake(x, y);
+            
+        } else if ([point caseInsensitiveCompare:CSToastPositionTopLeft] == NSOrderedSame) {
+            CGFloat x = (toast.frame.size.width / 2) + style.horizontalPadding + edgeInsets.left;
+            CGFloat y = (toast.frame.size.height / 2) + style.verticalPadding + edgeInsets.top;
+            return CGPointMake(x, y);
+            
+        } else if ([point caseInsensitiveCompare:CSToastPositionCenter] == NSOrderedSame) {
+            CGFloat x = self.bounds.size.width / 2;
+            CGFloat y = self.bounds.size.height / 2;
+            return CGPointMake(x, y);
+            
+        } else if ([point caseInsensitiveCompare:CSToastPositionBottomRight] == NSOrderedSame) {
+            CGFloat x = self.bounds.size.width - (toast.frame.size.width / 2) - style.horizontalPadding - edgeInsets.right;
+            CGFloat y = self.bounds.size.height - (toast.frame.size.height / 2) - style.verticalPadding - edgeInsets.bottom;
+            return CGPointMake(x, y);
+            
+        } else if ([point caseInsensitiveCompare:CSToastPositionBottomLeft] == NSOrderedSame) {
+            CGFloat x = (toast.frame.size.width / 2) + style.horizontalPadding + edgeInsets.left;
+            CGFloat y = self.bounds.size.height - (toast.frame.size.height / 2) - style.verticalPadding - edgeInsets.bottom;
+            return CGPointMake(x, y);
+        }
+    }
+    
     // default to bottom
-    return CGPointMake(self.bounds.size.width/2, (self.bounds.size.height - (toast.frame.size.height / 2)) - style.verticalPadding);
+    CGFloat x = self.bounds.size.width / 2;
+    CGFloat y = (self.bounds.size.height - (toast.frame.size.height / 2)) - style.verticalPadding - edgeInsets.bottom;
+    return CGPointMake(x, y);
 }
 
 @end
