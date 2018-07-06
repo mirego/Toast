@@ -327,7 +327,7 @@ extern const NSString * CSToastPositionBottomLeft;
  with with a nil style. By default, this is set to `CSToastStyle`'s default
  style.
  
- @param sharedStyle
+ @param sharedStyle The shared style on the singleton
  */
 + (void)setSharedStyle:(CSToastStyle *)sharedStyle;
 
@@ -342,7 +342,7 @@ extern const NSString * CSToastPositionBottomLeft;
 /**
  Enables or disables tap to dismiss on toast views. Default is `YES`.
  
- @param allowTapToDismiss
+ @param tapToDismissEnabled Enables or disables tap to dismiss on toast views
  */
 + (void)setTapToDismissEnabled:(BOOL)tapToDismissEnabled;
 
@@ -361,7 +361,7 @@ extern const NSString * CSToastPositionBottomLeft;
  on their positions). This has no effect on the toast activity view,
  which operates independently of normal toast views. Default is `YES`.
  
- @param queueEnabled
+ @param queueEnabled Enables or disables queueing behavior for toast views
  */
 + (void)setQueueEnabled:(BOOL)queueEnabled;
 
