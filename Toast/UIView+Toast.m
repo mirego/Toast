@@ -2,7 +2,7 @@
 //  UIView+Toast.m
 //  Toast
 //
-//  Copyright (c) 2011-2015 Charles Scalesse.
+//  Copyright (c) 2011-2024 Charles Scalesse.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a
 //  copy of this software and associated documentation files (the
@@ -27,13 +27,14 @@
 #import <QuartzCore/QuartzCore.h>
 #import <objc/runtime.h>
 
-NSString * CSToastPositionTop       = @"CSToastPositionTop";
-NSString * CSToastPositionTopRight       = @"CSToastPositionTopRight";
-NSString * CSToastPositionTopLeft       = @"CSToastPositionTopLeft";
-NSString * CSToastPositionCenter    = @"CSToastPositionCenter";
-NSString * CSToastPositionBottom    = @"CSToastPositionBottom";
-NSString * CSToastPositionBottomRight    = @"CSToastPositionBottomRight";
-NSString * CSToastPositionBottomLeft    = @"CSToastPositionBottomLeft";
+// Positions
+NSString * CSToastPositionTop                       = @"CSToastPositionTop";
+NSString * CSToastPositionTopRight                  = @"CSToastPositionTopRight";
+NSString * CSToastPositionTopLeft                   = @"CSToastPositionTopLeft";
+NSString * CSToastPositionCenter                    = @"CSToastPositionCenter";
+NSString * CSToastPositionBottom                    = @"CSToastPositionBottom";
+NSString * CSToastPositionBottomRight               = @"CSToastPositionBottomRight";
+NSString * CSToastPositionBottomLeft                = @"CSToastPositionBottomLeft";
 
 // Keys for values associated with toast views
 static const NSString * CSToastTimerKey             = @"CSToastTimerKey";
@@ -42,7 +43,7 @@ static const NSString * CSToastPositionKey          = @"CSToastPositionKey";
 static const NSString * CSToastCompletionKey        = @"CSToastCompletionKey";
 
 // Keys for values associated with self
-static const NSString * CSToastActiveToastViewKey   = @"CSToastActiveToastViewKey";
+static const NSString * CSToastActiveKey            = @"CSToastActiveKey";
 static const NSString * CSToastActivityViewKey      = @"CSToastActivityViewKey";
 static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
 
@@ -101,7 +102,7 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
     // store the completion block on the toast view
     objc_setAssociatedObject(toast, &CSToastCompletionKey, completion, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     
-    if ([CSToastManager isQueueEnabled] && objc_getAssociatedObject(self, &CSToastActiveToastViewKey) != nil) {
+    if ([CSToastManager isQueueEnabled] && [self.cs_activeToasts count] > 0) {
         // we're about to queue this toast view so we need to store the duration and position as well
         objc_setAssociatedObject(toast, &CSToastDurationKey, @(duration), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         objc_setAssociatedObject(toast, &CSToastPositionKey, position, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -114,27 +115,62 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
     }
 }
 
+#pragma mark - Hide Toast Methods
+
+- (void)hideToast {
+    [self hideToast:[[self cs_activeToasts] firstObject]];
+}
+
+- (void)hideToast:(UIView *)toast {
+    // sanity
+    if (!toast || ![[self cs_activeToasts] containsObject:toast]) return;
+    
+    [self cs_hideToast:toast];
+}
+
+- (void)hideAllToasts {
+    [self hideAllToasts:NO clearQueue:YES];
+}
+
+- (void)hideAllToasts:(BOOL)includeActivity clearQueue:(BOOL)clearQueue {
+    if (clearQueue) {
+        [self clearToastQueue];
+    }
+    
+    for (UIView *toast in [self cs_activeToasts]) {
+        [self hideToast:toast];
+    }
+    
+    if (includeActivity) {
+        [self hideToastActivity];
+    }
+}
+
+- (void)clearToastQueue {
+    [[self cs_toastQueue] removeAllObjects];
+}
+
 #pragma mark - Private Show/Hide Methods
 
 - (void)cs_showToast:(UIView *)toast duration:(NSTimeInterval)duration position:(id)position {
     toast.center = [self cs_centerPointForPosition:position withToast:toast];
     toast.alpha = 0.0;
+    
+    // Set shadowPath to bounds to improve rendering speed
     if (toast.layer.shadowOpacity > 0.0) {
         toast.layer.shadowPath = [UIBezierPath bezierPathWithRect:toast.bounds].CGPath;
     }
-    
     
     if ([CSToastManager isTapToDismissEnabled]) {
         UITapGestureRecognizer *recognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(cs_handleToastTapped:)];
         [toast addGestureRecognizer:recognizer];
         toast.userInteractionEnabled = YES;
-        #if !TARGET_OS_TV
+#if !TARGET_OS_TV
         toast.exclusiveTouch = YES;
-        #endif
+#endif
     }
     
-    // set the active toast
-    objc_setAssociatedObject(self, &CSToastActiveToastViewKey, toast, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [[self cs_activeToasts] addObject:toast];
     
     [self addSubview:toast];
     
@@ -155,6 +191,9 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
 }
     
 - (void)cs_hideToast:(UIView *)toast fromTap:(BOOL)fromTap {
+    NSTimer *timer = (NSTimer *)objc_getAssociatedObject(toast, &CSToastTimerKey);
+    [timer invalidate];
+    
     [UIView animateWithDuration:[[CSToastManager sharedStyle] fadeDuration]
                           delay:0.0
                         options:(UIViewAnimationOptionCurveEaseIn | UIViewAnimationOptionBeginFromCurrentState)
@@ -163,8 +202,8 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
                      } completion:^(BOOL finished) {
                          [toast removeFromSuperview];
                          
-                         // clear the active toast
-                         objc_setAssociatedObject(self, &CSToastActiveToastViewKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                         // remove
+                         [[self cs_activeToasts] removeObject:toast];
                          
                          // execute the completion block, if necessary
                          void (^completion)(BOOL didTap) = objc_getAssociatedObject(toast, &CSToastCompletionKey);
@@ -189,7 +228,7 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
 
 - (UIView *)toastViewForMessage:(NSString *)message title:(NSString *)title image:(UIImage *)image style:(CSToastStyle *)style {
     // sanity
-    if(message == nil && title == nil && image == nil) return nil;
+    if (message == nil && title == nil && image == nil) return nil;
     
     // default to the shared style
     if (style == nil) {
@@ -310,7 +349,16 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
     return wrapperView;
 }
 
-#pragma mark - Queue
+#pragma mark - Storage
+
+- (NSMutableArray *)cs_activeToasts {
+    NSMutableArray *cs_activeToasts = objc_getAssociatedObject(self, &CSToastActiveKey);
+    if (cs_activeToasts == nil) {
+        cs_activeToasts = [[NSMutableArray alloc] init];
+        objc_setAssociatedObject(self, &CSToastActiveKey, cs_activeToasts, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    return cs_activeToasts;
+}
 
 - (NSMutableArray *)cs_toastQueue {
     NSMutableArray *cs_toastQueue = objc_getAssociatedObject(self, &CSToastQueueKey);
@@ -396,53 +444,36 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
 - (CGPoint)cs_centerPointForPosition:(id)point withToast:(UIView *)toast {
     CSToastStyle *style = [CSToastManager sharedStyle];
     
-    if ([point isKindOfClass:[NSValue class]]) {
+    UIEdgeInsets safeInsets = UIEdgeInsetsZero;
+    if (@available(iOS 11.0, tvOS 11.0, *)) {
+        safeInsets = self.safeAreaInsets;
+    }
+    
+    CGFloat topPadding = style.verticalPadding + safeInsets.top;
+    CGFloat leftPadding = style.horizontalPadding + safeInsets.left;
+    CGFloat bottomPadding = style.verticalPadding + safeInsets.bottom;
+    CGFloat rightPadding = style.horizontalPadding + safeInsets.right;
+    
+    if([point isKindOfClass:[NSString class]]) {
+        if([point caseInsensitiveCompare:CSToastPositionTop] == NSOrderedSame) {
+            return CGPointMake(self.bounds.size.width / 2.0, (toast.bounds.size.height / 2.0) + topPadding);
+        } else if([point caseInsensitiveCompare:CSToastPositionTopRight] == NSOrderedSame) {
+            return CGPointMake(self.bounds.size.width - (toast.bounds.size.width / 2.0) - rightPadding, (toast.bounds.size.height / 2.0) + topPadding);
+        } else if([point caseInsensitiveCompare:CSToastPositionTopLeft] == NSOrderedSame) {
+            return CGPointMake((toast.bounds.size.width / 2.0) + leftPadding, (toast.bounds.size.height / 2.0) + topPadding);
+        } else if([point caseInsensitiveCompare:CSToastPositionCenter] == NSOrderedSame) {
+            return CGPointMake(self.bounds.size.width / 2.0, self.bounds.size.height / 2.0);
+        } else if([point caseInsensitiveCompare:CSToastPositionBottomRight] == NSOrderedSame) {
+            return CGPointMake(self.bounds.size.width - (toast.bounds.size.width / 2.0) - rightPadding, (self.bounds.size.height - (toast.bounds.size.height / 2.0)) - bottomPadding);
+        } else if([point caseInsensitiveCompare:CSToastPositionBottomLeft] == NSOrderedSame) {
+            return CGPointMake((toast.bounds.size.width / 2.0) + leftPadding, (self.bounds.size.height - (toast.bounds.size.height / 2.0)) - bottomPadding);
+        }
+    } else if ([point isKindOfClass:[NSValue class]]) {
         return [point CGPointValue];
     }
     
-    UIEdgeInsets edgeInsets = UIEdgeInsetsZero;
-    
-    if (@available(iOS 11.0, tvOS 11.0, *)) {
-        edgeInsets = self.superview.safeAreaInsets;
-    }
-    
-    if ([point isKindOfClass:[NSString class]]) {
-        if ([point caseInsensitiveCompare:CSToastPositionTop] == NSOrderedSame) {
-            CGFloat x = self.bounds.size.width / 2;
-            CGFloat y = (toast.frame.size.height / 2) + style.verticalPadding + edgeInsets.top;
-            return CGPointMake(x, y);
-            
-        } else if ([point caseInsensitiveCompare:CSToastPositionTopRight] == NSOrderedSame) {
-            CGFloat x = self.bounds.size.width - (toast.frame.size.width / 2) - style.horizontalPadding - edgeInsets.right;
-            CGFloat y = (toast.frame.size.height / 2) + style.verticalPadding + edgeInsets.top;
-            return CGPointMake(x, y);
-            
-        } else if ([point caseInsensitiveCompare:CSToastPositionTopLeft] == NSOrderedSame) {
-            CGFloat x = (toast.frame.size.width / 2) + style.horizontalPadding + edgeInsets.left;
-            CGFloat y = (toast.frame.size.height / 2) + style.verticalPadding + edgeInsets.top;
-            return CGPointMake(x, y);
-            
-        } else if ([point caseInsensitiveCompare:CSToastPositionCenter] == NSOrderedSame) {
-            CGFloat x = self.bounds.size.width / 2;
-            CGFloat y = self.bounds.size.height / 2;
-            return CGPointMake(x, y);
-            
-        } else if ([point caseInsensitiveCompare:CSToastPositionBottomRight] == NSOrderedSame) {
-            CGFloat x = self.bounds.size.width - (toast.frame.size.width / 2) - style.horizontalPadding - edgeInsets.right;
-            CGFloat y = self.bounds.size.height - (toast.frame.size.height / 2) - style.verticalPadding - edgeInsets.bottom;
-            return CGPointMake(x, y);
-            
-        } else if ([point caseInsensitiveCompare:CSToastPositionBottomLeft] == NSOrderedSame) {
-            CGFloat x = (toast.frame.size.width / 2) + style.horizontalPadding + edgeInsets.left;
-            CGFloat y = self.bounds.size.height - (toast.frame.size.height / 2) - style.verticalPadding - edgeInsets.bottom;
-            return CGPointMake(x, y);
-        }
-    }
-    
     // default to bottom
-    CGFloat x = self.bounds.size.width / 2;
-    CGFloat y = (self.bounds.size.height - (toast.frame.size.height / 2)) - style.verticalPadding - edgeInsets.bottom;
-    return CGPointMake(x, y);
+    return CGPointMake(self.bounds.size.width / 2.0, (self.bounds.size.height - (toast.bounds.size.height / 2.0)) - bottomPadding);
 }
 
 @end
@@ -522,7 +553,7 @@ static const NSString * CSToastQueueKey             = @"CSToastQueueKey";
     if (self) {
         self.sharedStyle = [[CSToastStyle alloc] initWithDefaultStyle];
         self.tapToDismissEnabled = YES;
-        self.queueEnabled = YES;
+        self.queueEnabled = NO;
         self.defaultDuration = 3.0;
         self.defaultPosition = CSToastPositionBottom;
     }

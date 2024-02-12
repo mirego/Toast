@@ -1,8 +1,8 @@
 Toast for iOS
 =============
 
-[![Build Status](https://travis-ci.org/scalessec/Toast.svg?branch=3.0)](https://travis-ci.org/scalessec/Toast)
 [![CocoaPods Version](https://img.shields.io/cocoapods/v/Toast.svg)](http://cocoadocs.org/docsets/Toast)
+[![Carthage Compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
 Toast is an Objective-C category that adds toast notifications to the `UIView` object class. It is intended to be simple, lightweight, and easy to use. Most
  toast notifications can be triggered with a single line of code.
@@ -11,7 +11,7 @@ Toast is an Objective-C category that adds toast notifications to the `UIView` o
 
 Screenshots
 ---------
-![Toast Screenshots](toast_screenshot.jpg)
+![Toast Screenshots](toast_screenshots.jpg)
 
 
 Basic Examples
@@ -71,29 +71,47 @@ style.messageColor = [UIColor orangeColor];
 
 // toggle queueing behavior
 [CSToastManager setQueueEnabled:YES];
+
+// immediately hides all toast views in self.view
+[self.view hideAllToasts];
 ```
     
 See the demo project for more examples.
 
-
 Setup Instructions
 ------------------
-Install with [CocoaPods](http://cocoapods.org) by adding the following to your Podfile:
 
-``` ruby
-platform :ios, '7.0'
-pod 'Toast', '~> 3.0'
+[CocoaPods](http://cocoapods.org)
+------------------
+
+Install with CocoaPods by adding the following to your `Podfile`:
+```ruby
+pod 'Toast', '~> 4.1.0'
 ```
 
-or add manually: 
+[Carthage](https://github.com/Carthage/Carthage)
+------------------
+
+Install with Carthage by adding the following to your `Cartfile`:
+```ogdl
+github "scalessec/Toast" ~> 4.1.0
+```
+Run `carthage update --use-xcframeworks` to build the framework and link against `Toast.xcframework`. Then, `#import <Toast/Toast.h>`.
+
+Manually
+--------
 
 1. Add `UIView+Toast.h` & `UIView+Toast.m` to your project.
-2. Link against QuartzCore.
+2. `#import "UIView+Toast.h"`
+3. Grab yourself a cold 🍺.
 
-
+Privacy
+-----------
+Toast does not collect any data. A [privacy manifest](Toast/Resources/PrivacyInfo.xcprivacy) is provided with the library. See [Apple's documentation](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files) for related details.
+ 
 MIT License
 -----------
-    Copyright (c) 2011-2015 Charles Scalesse.
+    Copyright (c) 2011-2024 Charles Scalesse.
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the
